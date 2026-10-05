@@ -1,6 +1,6 @@
 {
   "name": "clutter-cutter",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A CLI tool to organize your directories",
   "main": "bin/index.js",
   "types": "bin/index.d.ts",
