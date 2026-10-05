@@ -2,6 +2,8 @@ import listFiles from "../utils/listFiles.js";
 import fileTypes from "../data/fileTypes.json" with { type: "json" };
 import path from "path";
 import { mkdir, rename } from "fs/promises";
+import chalk from "chalk";
+import ora from "ora";
 
 interface FileTypes {
   [category: string]: string[];
@@ -18,7 +20,7 @@ const getCategory = (ext: string): string => {
 
 const organize = async (targetDir: string, options: any) => {
   const resolvedPath = path.resolve(process.cwd(), targetDir);
-  console.log("organizing path: ", resolvedPath);
+  console.log(chalk.cyan.bold("Organizing: ", resolvedPath));
   //   console.log(options);
   //   fileTypes;
   const files = await listFiles(resolvedPath);
@@ -26,6 +28,14 @@ const organize = async (targetDir: string, options: any) => {
     console.log("No files found to organize.");
     return;
   }
+
+  const spinner = ora({
+    text: "Organizing files...",
+    spinner: "aesthetic",
+    color: "magenta",
+  }).start();
+  let successCount = 0;
+  let errorCount = 0;
 
   for (const file of files) {
     const category = getCategory(file.ext);
@@ -36,9 +46,18 @@ const organize = async (targetDir: string, options: any) => {
       await mkdir(categoryFolderPath, { recursive: true });
       // cut file and paste it in the folder of its category
       await rename(file.path, fileDestinationPath);
+      successCount++;
     } catch (err) {
-      console.error("Error: ", err);
+      errorCount++;
+      console.error(chalk.red(`Failed to move ${file.name}: ${err}`));
     }
+  }
+  if (errorCount > 0) {
+    spinner.warn(
+      `Some errors occured. Moved: ${successCount}, Failed: ${errorCount}`,
+    );
+  } else {
+    spinner.succeed(`Successfully organized all ${successCount} files`);
   }
 };
 

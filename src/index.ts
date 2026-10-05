@@ -2,6 +2,7 @@
 
 import { program } from "commander";
 import organize from "./commands/organize.js";
+import testSpinner from "./commands/organize.js";
 
 program
   .name("clutter-cutter")
