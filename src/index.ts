@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env npx tsx
 
 import { program } from "commander";
 
@@ -9,6 +9,7 @@ program
 
 program
   .command("just-testing")
-  .action(() => console.log("Yeah, working perfectly"));
+  .action(() => console.log("Output: Yeah, working perfectly"));
 
 program.parse()
+

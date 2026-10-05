@@ -1,0 +1,6 @@
+{
+  "images": [".jpg", ".jpeg", ".png", ".gif", ".svg", ".webp"],
+  "documents": [".pdf", ".docx", ".doc", ".txt", ".xlsx", ".pptx", ".csv"],
+  "archives": [".zip", ".tar", ".gz", ".7z", ".rar"],
+  "executables": [".exe", ".dmg", ".pkg", ".deb", ".sh"]
+}
