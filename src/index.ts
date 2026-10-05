@@ -12,4 +12,3 @@ program
   .action(() => console.log("Output: Yeah, working perfectly"));
 
 program.parse()
-
