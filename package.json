@@ -1,0 +1,40 @@
+{
+  "name": "clutter-cutter",
+  "version": "0.0.1",
+  "description": "A CLI tool to organize your directories",
+  "main": "bin/index.js",
+  "types": "bin/index.d.ts",
+  "bin": {
+    "clutter-cutter": "bin/index.js"
+  },
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsc && chmod +x bin/index.js",
+    "start": "node bin/index.js",
+    "prepublishOnly": "npm run build",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Umar Farooq",
+  "license": "ISC",
+  "type": "module",
+  "files": [
+    "bin"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/umar-farooq-5757/clutter-cutter.git"
+  },
+  "bugs": {
+    "url": "https://github.com/umar-farooq-5757/clutter-cutter/issues"
+  },
+  "homepage": "https://github.com/umar-farooq-5757/clutter-cutter#readme",
+  "dependencies": {
+    "commander": "^15.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0"
+  }
+}
