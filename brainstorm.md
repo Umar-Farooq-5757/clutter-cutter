@@ -8,5 +8,3 @@ options:
 
 for undoing
 clutter-cutter --undo | clutter-cutter -u
-
-basic organizing is working now. I've created `organizer` method to organize the files in their respective categories. The next goal is to make this method safer by asking confirmation from users before performing the action.

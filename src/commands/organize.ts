@@ -4,6 +4,7 @@ import path from "path";
 import { mkdir, rename } from "fs/promises";
 import chalk from "chalk";
 import ora from "ora";
+import inquirer from "inquirer";
 
 interface FileTypes {
   [category: string]: string[];
@@ -20,6 +21,15 @@ const getCategory = (ext: string): string => {
 
 const organize = async (targetDir: string, options: any) => {
   const resolvedPath = path.resolve(process.cwd(), targetDir);
+  // confirm from the user before organizing files into different categories
+  const { proceed } = await inquirer.prompt([
+    { type: "confirm", name: "proceed", message: `Are you sure you want to organize all the files in "${chalk.cyan.bold(resolvedPath)}"` },
+  ]);
+  if (!proceed) {
+    console.log("Cancelled organizing files");
+    return;
+  }
+
   console.log(chalk.cyan.bold("Organizing: ", resolvedPath));
   //   console.log(options);
   //   fileTypes;

@@ -7,7 +7,7 @@ import testSpinner from "./commands/organize.js";
 program
   .name("clutter-cutter")
   .description("A CLI tool to organize your directories")
-  .version("0.1.0");
+  .version("0.1.1");
 
 program
   .command("just-testing")
