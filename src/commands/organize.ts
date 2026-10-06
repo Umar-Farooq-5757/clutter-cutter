@@ -5,6 +5,7 @@ import { mkdir, rename } from "fs/promises";
 import chalk from "chalk";
 import ora from "ora";
 import inquirer from "inquirer";
+import treeify from "treeify";
 
 interface FileTypes {
   [category: string]: string[];
@@ -19,25 +20,57 @@ const getCategory = (ext: string): string => {
   return "others";
 };
 
+const dryRun = async (
+  files: { name: string; path: string; ext: string }[],
+  resolvedPath: string,
+) => {
+  const rootFolder = path.basename(resolvedPath);
+  // console.log(files);
+  // console.log("resultant folder structure: \n\n\n");
+  const folderStructure: Record<string, any> = {
+    [chalk.blue.bold(rootFolder)]: {},
+  };
+  files.forEach((file) => {
+    const category = getCategory(file.ext);
+    const rootKey = Object.keys(folderStructure)[0];
+
+    if (!folderStructure[rootKey][chalk.magenta(category)]) {
+      folderStructure[rootKey][chalk.magenta(category)] = {};
+    }
+    folderStructure[rootKey][chalk.magenta(category)][file.name] = "";
+  });
+
+  console.log(treeify.asTree(folderStructure, false, false));
+};
+
 const organize = async (targetDir: string, options: any) => {
   const resolvedPath = path.resolve(process.cwd(), targetDir);
-  // confirm from the user before organizing files into different categories
-  const { proceed } = await inquirer.prompt([
-    { type: "confirm", name: "proceed", message: `Are you sure you want to organize all the files in "${chalk.cyan.bold(resolvedPath)}"` },
-  ]);
-  if (!proceed) {
-    console.log("Cancelled organizing files");
-    return;
-  }
 
-  console.log(chalk.cyan.bold("Organizing: ", resolvedPath));
   //   console.log(options);
-  //   fileTypes;
   const files = await listFiles(resolvedPath);
   if (files.length === 0) {
     console.log("No files found to organize.");
     return;
   }
+
+  if (options.dryRun) {
+    dryRun(files, resolvedPath);
+    return;
+  }
+
+  // confirm from the user before organizing files into different categories
+  const { proceed } = await inquirer.prompt([
+    {
+      type: "confirm",
+      name: "proceed",
+      message: `Are you sure you want to organize all the files in "${chalk.cyan.bold(resolvedPath)}"`,
+    },
+  ]);
+  if (!proceed) {
+    console.log("Cancelled organizing files");
+    return;
+  }
+  console.log(chalk.cyan.bold("Organizing: ", resolvedPath));
 
   const spinner = ora({
     text: "Organizing files...",

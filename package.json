@@ -1,6 +1,6 @@
 {
   "name": "clutter-cutter",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "A CLI tool to organize your directories",
   "main": "bin/index.js",
   "types": "bin/index.d.ts",
@@ -33,10 +33,12 @@
     "chalk": "^6.0.1",
     "commander": "^15.0.0",
     "inquirer": "^14.2.3",
-    "ora": "^9.4.1"
+    "ora": "^9.4.1",
+    "treeify": "^1.1.0"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
+    "@types/treeify": "^1.0.3",
     "tsx": "^4.20.0",
     "typescript": "^5.9.0"
   }

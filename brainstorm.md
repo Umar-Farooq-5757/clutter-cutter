@@ -8,3 +8,4 @@ options:
 
 for undoing
 clutter-cutter --undo | clutter-cutter -u
+
