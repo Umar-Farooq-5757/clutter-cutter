@@ -2,6 +2,7 @@
 
 import { program } from "commander";
 import organize from "./commands/organize.js";
+import undo from "./commands/undo.js";
 
 program
   .name("clutter-cutter")
@@ -20,5 +21,11 @@ program
   .action((path, options) => {
     organize(path, options);
   });
+
+program
+  .command("undo")
+  .argument("[path]", "Directory to undo", ".")
+  .description("Put the files back to their original place")
+  .action((path) => undo(path));
 
 program.parse();
