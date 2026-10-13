@@ -7,6 +7,7 @@ import ora from "ora";
 import inquirer from "inquirer";
 import treeify from "treeify";
 import chokidar from "chokidar";
+import { checkbox } from "@inquirer/prompts";
 
 interface FileTypes {
   [category: string]: string[];
@@ -44,10 +45,48 @@ const dryRun = async (
   console.log(treeify.asTree(folderStructure, false, false));
 };
 
+const organizeFiles = async (
+  files: { name: string; path: string; ext: string }[],
+  resolvedPath: string,
+) => {
+  const spinner = ora({
+    text: "Organizing files...",
+    spinner: "aesthetic",
+    color: "magenta",
+  }).start();
+  let successCount = 0;
+  let errorCount = 0;
+
+  for (const file of files) {
+    const category = getCategory(file.ext);
+    const categoryFolderPath = path.join(resolvedPath, category);
+    const fileDestinationPath = path.join(categoryFolderPath, file.name);
+
+    try {
+      await mkdir(categoryFolderPath, { recursive: true });
+      // cut file and paste it in the folder of its category
+      await rename(file.path, fileDestinationPath);
+      successCount++;
+    } catch (err) {
+      errorCount++;
+      console.error(chalk.red(`Failed to move ${file.name}: ${err}`));
+    }
+  }
+  if (errorCount > 0) {
+    spinner.warn(
+      `Some errors occured. Moved: ${successCount}, Failed: ${errorCount}`,
+    );
+  } else {
+    spinner.succeed(`Successfully organized all ${successCount} files`);
+  }
+};
+
 const organize = async (targetDir: string, options: any) => {
   const resolvedPath = path.resolve(process.cwd(), targetDir);
 
-  // Watch mode
+  /**
+   * Watch mode
+   */
   if (options.watch) {
     console.log(
       chalk.cyan.bold(`Watch mode active! Monitoring: ${resolvedPath}`),
@@ -97,6 +136,28 @@ const organize = async (targetDir: string, options: any) => {
     return;
   }
 
+  /**
+   * Interactive mode
+   */
+  if (options.interactive) {
+    const choices = files.map((file) => ({
+      name: file.name,
+      value: file.name,
+    }));
+    const selectedFiles = await checkbox({
+      message: "Select the fiels you want to organize:",
+      choices,
+    });
+    const filesToOrganize = files.filter((file) =>
+      selectedFiles.includes(file.name),
+    );
+    organizeFiles(filesToOrganize, resolvedPath);
+    return;
+  }
+
+  /**
+   * Dry run
+   */
   if (options.dryRun) {
     dryRun(files, resolvedPath);
     return;
@@ -116,36 +177,7 @@ const organize = async (targetDir: string, options: any) => {
   }
   console.log(chalk.cyan.bold("Organizing: ", resolvedPath));
 
-  const spinner = ora({
-    text: "Organizing files...",
-    spinner: "aesthetic",
-    color: "magenta",
-  }).start();
-  let successCount = 0;
-  let errorCount = 0;
-
-  for (const file of files) {
-    const category = getCategory(file.ext);
-    const categoryFolderPath = path.join(resolvedPath, category);
-    const fileDestinationPath = path.join(categoryFolderPath, file.name);
-
-    try {
-      await mkdir(categoryFolderPath, { recursive: true });
-      // cut file and paste it in the folder of its category
-      await rename(file.path, fileDestinationPath);
-      successCount++;
-    } catch (err) {
-      errorCount++;
-      console.error(chalk.red(`Failed to move ${file.name}: ${err}`));
-    }
-  }
-  if (errorCount > 0) {
-    spinner.warn(
-      `Some errors occured. Moved: ${successCount}, Failed: ${errorCount}`,
-    );
-  } else {
-    spinner.succeed(`Successfully organized all ${successCount} files`);
-  }
+  organizeFiles(files, resolvedPath);
 };
 
 export default organize;

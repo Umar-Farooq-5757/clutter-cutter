@@ -18,7 +18,8 @@ program
   .description("Organize files in a target directory")
   .argument("[path]", "Directory to organize", ".")
   .option("-D, --dry-run", "Preview changes without actually moving files")
-  .option('-w, --watch','Watch directory in real-time for new files')
+  .option("-w, --watch", "Watch directory in real-time for new files")
+  .option("-i, --interactive", "Select each file individually to organize")
   .action((path, options) => {
     organize(path, options);
   });
