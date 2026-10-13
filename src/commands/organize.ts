@@ -6,6 +6,7 @@ import chalk from "chalk";
 import ora from "ora";
 import inquirer from "inquirer";
 import treeify from "treeify";
+import chokidar from "chokidar";
 
 interface FileTypes {
   [category: string]: string[];
@@ -46,7 +47,50 @@ const dryRun = async (
 const organize = async (targetDir: string, options: any) => {
   const resolvedPath = path.resolve(process.cwd(), targetDir);
 
-  //   console.log(options);
+  // Watch mode
+  if (options.watch) {
+    console.log(
+      chalk.cyan.bold(`Watch mode active! Monitoring: ${resolvedPath}`),
+    );
+    console.log(
+      chalk.gray(
+        "New files will be organized automatically. Press Ctrl+C to exit.\n",
+      ),
+    );
+
+    chokidar
+      .watch(resolvedPath, {
+        ignored: /(^|[/\\])\../,
+        depth: 0,
+        ignoreInitial: true,
+      })
+      .on("add", async (filePath) => {
+        const fileName = path.basename(filePath);
+        const ext = path.extname(fileName).toLowerCase();
+
+        // Small delay (500ms) to ensure large files/downloads have finished writing to disk
+        setTimeout(async () => {
+          try {
+            const category = getCategory(ext);
+            const categoryFolderPath = path.join(resolvedPath, category);
+            const destinationPath = path.join(categoryFolderPath, fileName);
+
+            await mkdir(categoryFolderPath, { recursive: true });
+            await rename(filePath, destinationPath);
+
+            console.log(
+              chalk.green(`Auto-organized: ${fileName}`) +
+                chalk.gray(` -> ${category}/`),
+            );
+          } catch (err) {
+            console.error(chalk.red(`Failed to organize ${fileName}:`, err));
+          }
+        }, 500);
+      });
+    return;
+  }
+
+  // console.log(options);
   const files = await listFiles(resolvedPath);
   if (files.length === 0) {
     console.log("No files found to organize.");

@@ -7,7 +7,7 @@ import undo from "./commands/undo.js";
 program
   .name("clutter-cutter")
   .description("A CLI tool to organize your directories")
-  .version("0.2.0");
+  .version("1.0.0");
 
 program
   .command("just-testing")
@@ -18,6 +18,7 @@ program
   .description("Organize files in a target directory")
   .argument("[path]", "Directory to organize", ".")
   .option("-D, --dry-run", "Preview changes without actually moving files")
+  .option('-w, --watch','Watch directory in real-time for new files')
   .action((path, options) => {
     organize(path, options);
   });
