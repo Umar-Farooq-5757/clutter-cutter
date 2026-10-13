@@ -1,5 +1,4 @@
 import listFiles from "../utils/listFiles.js";
-import fileTypes from "../data/fileTypes.json" with { type: "json" };
 import path from "path";
 import { mkdir, rename } from "fs/promises";
 import chalk from "chalk";
@@ -8,13 +7,13 @@ import inquirer from "inquirer";
 import treeify from "treeify";
 import chokidar from "chokidar";
 import { checkbox } from "@inquirer/prompts";
+import loadConfig from "../utils/loadConfig.js";
 
-interface FileTypes {
-  [category: string]: string[];
-}
-
-const getCategory = (ext: string): string => {
-  for (const [category, extensions] of Object.entries(fileTypes as FileTypes)) {
+const getCategory = (
+  ext: string,
+  categories: Record<string, string[]>,
+): string => {
+  for (const [category, extensions] of Object.entries(categories)) {
     if (extensions.includes(ext)) {
       return category;
     }
@@ -25,15 +24,15 @@ const getCategory = (ext: string): string => {
 const dryRun = async (
   files: { name: string; path: string; ext: string }[],
   resolvedPath: string,
+  categories: Record<string, string[]>,
 ) => {
   const rootFolder = path.basename(resolvedPath);
-  // console.log(files);
-  // console.log("resultant folder structure: \n\n\n");
   const folderStructure: Record<string, any> = {
     [chalk.blue.bold(rootFolder)]: {},
   };
+
   files.forEach((file) => {
-    const category = getCategory(file.ext);
+    const category = getCategory(file.ext, categories);
     const rootKey = Object.keys(folderStructure)[0];
 
     if (!folderStructure[rootKey][chalk.magenta(category)]) {
@@ -48,6 +47,7 @@ const dryRun = async (
 const organizeFiles = async (
   files: { name: string; path: string; ext: string }[],
   resolvedPath: string,
+  categories: Record<string, string[]>,
 ) => {
   const spinner = ora({
     text: "Organizing files...",
@@ -58,13 +58,12 @@ const organizeFiles = async (
   let errorCount = 0;
 
   for (const file of files) {
-    const category = getCategory(file.ext);
+    const category = getCategory(file.ext, categories);
     const categoryFolderPath = path.join(resolvedPath, category);
     const fileDestinationPath = path.join(categoryFolderPath, file.name);
 
     try {
       await mkdir(categoryFolderPath, { recursive: true });
-      // cut file and paste it in the folder of its category
       await rename(file.path, fileDestinationPath);
       successCount++;
     } catch (err) {
@@ -72,9 +71,10 @@ const organizeFiles = async (
       console.error(chalk.red(`Failed to move ${file.name}: ${err}`));
     }
   }
+
   if (errorCount > 0) {
     spinner.warn(
-      `Some errors occured. Moved: ${successCount}, Failed: ${errorCount}`,
+      `Some errors occurred. Moved: ${successCount}, Failed: ${errorCount}`,
     );
   } else {
     spinner.succeed(`Successfully organized all ${successCount} files`);
@@ -83,6 +83,7 @@ const organizeFiles = async (
 
 const organize = async (targetDir: string, options: any) => {
   const resolvedPath = path.resolve(process.cwd(), targetDir);
+  const config = await loadConfig(resolvedPath);
 
   /**
    * Watch mode
@@ -99,7 +100,7 @@ const organize = async (targetDir: string, options: any) => {
 
     chokidar
       .watch(resolvedPath, {
-        ignored: /(^|[/\\])\../,
+        ignored: /(^|[/\\])\../, // Ignore dotfiles
         depth: 0,
         ignoreInitial: true,
       })
@@ -107,10 +108,14 @@ const organize = async (targetDir: string, options: any) => {
         const fileName = path.basename(filePath);
         const ext = path.extname(fileName).toLowerCase();
 
-        // Small delay (500ms) to ensure large files/downloads have finished writing to disk
+        // Check if file is ignored by .clutterrc.json
+        if (config.ignore.includes(fileName) || fileName === ".clutterrc.json") {
+          return;
+        }
+
         setTimeout(async () => {
           try {
-            const category = getCategory(ext);
+            const category = getCategory(ext, config.categories);
             const categoryFolderPath = path.join(resolvedPath, category);
             const destinationPath = path.join(categoryFolderPath, fileName);
 
@@ -129,8 +134,16 @@ const organize = async (targetDir: string, options: any) => {
     return;
   }
 
-  // console.log(options);
-  const files = await listFiles(resolvedPath);
+  const allFiles = await listFiles(resolvedPath);
+
+  // Filter out ignored files and dotfiles/clutterrc
+  const files = allFiles.filter(
+    (file) =>
+      !config.ignore.includes(file.name) &&
+      !file.name.startsWith(".") &&
+      file.name !== ".clutterrc.json",
+  );
+
   if (files.length === 0) {
     console.log("No files found to organize.");
     return;
@@ -145,13 +158,19 @@ const organize = async (targetDir: string, options: any) => {
       value: file.name,
     }));
     const selectedFiles = await checkbox({
-      message: "Select the fiels you want to organize:",
+      message: "Select the files you want to organize:",
       choices,
     });
     const filesToOrganize = files.filter((file) =>
       selectedFiles.includes(file.name),
     );
-    organizeFiles(filesToOrganize, resolvedPath);
+
+    if (filesToOrganize.length === 0) {
+      console.log("No files selected to organize.");
+      return;
+    }
+
+    await organizeFiles(filesToOrganize, resolvedPath, config.categories);
     return;
   }
 
@@ -159,11 +178,11 @@ const organize = async (targetDir: string, options: any) => {
    * Dry run
    */
   if (options.dryRun) {
-    dryRun(files, resolvedPath);
+    await dryRun(files, resolvedPath, config.categories);
     return;
   }
 
-  // confirm from the user before organizing files into different categories
+  // Confirm from the user before organizing files
   const { proceed } = await inquirer.prompt([
     {
       type: "confirm",
@@ -171,13 +190,14 @@ const organize = async (targetDir: string, options: any) => {
       message: `Are you sure you want to organize all the files in "${chalk.cyan.bold(resolvedPath)}"`,
     },
   ]);
+
   if (!proceed) {
     console.log("Cancelled organizing files");
     return;
   }
-  console.log(chalk.cyan.bold("Organizing: ", resolvedPath));
 
-  organizeFiles(files, resolvedPath);
+  console.log(chalk.cyan.bold("Organizing: ", resolvedPath));
+  await organizeFiles(files, resolvedPath, config.categories);
 };
 
 export default organize;
