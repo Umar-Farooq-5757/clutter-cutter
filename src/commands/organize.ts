@@ -9,6 +9,15 @@ import chokidar from "chokidar";
 import { checkbox } from "@inquirer/prompts";
 import loadConfig from "../utils/loadConfig.js";
 
+const spooky = {
+  accent: chalk.hex("#ff7518"),
+  ghost: chalk.hex("#e6e6fa"),
+  toxic: chalk.hex("#39ff14"),
+  blood: chalk.hex("#dc143c"),
+  dim: chalk.hex("#4a4a4a"),
+  bold: chalk.bold,
+};
+
 const getCategory = (
   ext: string,
   categories: Record<string, string[]>,
@@ -25,35 +34,50 @@ const dryRun = async (
   files: { name: string; path: string; ext: string }[],
   resolvedPath: string,
   categories: Record<string, string[]>,
+  isSpooky: boolean,
 ) => {
   const rootFolder = path.basename(resolvedPath);
   const folderStructure: Record<string, any> = {
-    [chalk.blue.bold(rootFolder)]: {},
+    [isSpooky ? spooky.accent.bold(rootFolder) : chalk.blue.bold(rootFolder)]:
+      {},
   };
 
   files.forEach((file) => {
     const category = getCategory(file.ext, categories);
     const rootKey = Object.keys(folderStructure)[0];
+    const catKey = isSpooky ? spooky.ghost(category) : chalk.magenta(category);
 
-    if (!folderStructure[rootKey][chalk.magenta(category)]) {
-      folderStructure[rootKey][chalk.magenta(category)] = {};
+    if (!folderStructure[rootKey][catKey]) {
+      folderStructure[rootKey][catKey] = {};
     }
-    folderStructure[rootKey][chalk.magenta(category)][file.name] = "";
+    folderStructure[rootKey][catKey][file.name] = "";
   });
 
+  if (isSpooky) {
+    console.log(spooky.accent("\n--- THE HAUNTED MANIFEST (Dry Run) ---\n"));
+  }
   console.log(treeify.asTree(folderStructure, false, false));
+  if (isSpooky) {
+    console.log(
+      spooky.dim("\n[ No files were physically harmed in this séance ]\n"),
+    );
+  }
 };
 
 const organizeFiles = async (
   files: { name: string; path: string; ext: string }[],
   resolvedPath: string,
   categories: Record<string, string[]>,
+  isSpooky: boolean,
 ) => {
   const spinner = ora({
-    text: "Organizing files...",
-    spinner: "aesthetic",
-    color: "magenta",
+    text: isSpooky
+      ? spooky.ghost("Gazing into the crystal ball... organizing files...")
+      : "Organizing files...",
+    spinner: isSpooky ? "moon" : "aesthetic",
+    color: isSpooky ? "magenta" : "magenta",
   }).start();
+
   let successCount = 0;
   let errorCount = 0;
 
@@ -61,46 +85,74 @@ const organizeFiles = async (
     const category = getCategory(file.ext, categories);
     const categoryFolderPath = path.join(resolvedPath, category);
     const fileDestinationPath = path.join(categoryFolderPath, file.name);
-
     try {
       await mkdir(categoryFolderPath, { recursive: true });
       await rename(file.path, fileDestinationPath);
       successCount++;
     } catch (err) {
       errorCount++;
-      console.error(chalk.red(`Failed to move ${file.name}: ${err}`));
+      if (isSpooky) {
+        console.error(
+          spooky.blood(
+            `Curse of the File System! Failed to snatch ${file.name}: ${err}`,
+          ),
+        );
+      } else {
+        console.error(chalk.red(`Failed to move ${file.name}: ${err}`));
+      }
     }
   }
-
   if (errorCount > 0) {
     spinner.warn(
       `Some errors occurred. Moved: ${successCount}, Failed: ${errorCount}`,
     );
   } else {
-    spinner.succeed(`Successfully organized all ${successCount} files`);
+    if (isSpooky) {
+      spinner.succeed(
+        spooky.toxic(
+          `The spirits are pleased. Successfully banished ${successCount} files into the shadows!`,
+        ),
+      );
+    } else {
+      spinner.succeed(`Successfully organized all ${successCount} files`);
+    }
   }
 };
 
 const organize = async (targetDir: string, options: any) => {
   const resolvedPath = path.resolve(process.cwd(), targetDir);
   const config = await loadConfig(resolvedPath);
+  const isSpooky = !!options.spooky;
 
   /**
    * Watch mode
    */
   if (options.watch) {
-    console.log(
-      chalk.cyan.bold(`Watch mode active! Monitoring: ${resolvedPath}`),
-    );
-    console.log(
-      chalk.gray(
-        "New files will be organized automatically. Press Ctrl+C to exit.\n",
-      ),
-    );
+    if (isSpooky) {
+      console.log(
+        spooky.accent.bold(
+          `3AM HAUNTED WATCH ACTIVE: Monitoring "${resolvedPath}"`,
+        ),
+      );
+      console.log(
+        spooky.dim(
+          "The all-seeing eye is watching for fresh sacrifices... Press Ctrl+C to flee.\n",
+        ),
+      );
+    } else {
+      console.log(
+        chalk.cyan.bold(`Watch mode active! Monitoring: ${resolvedPath}`),
+      );
+      console.log(
+        chalk.gray(
+          "New files will be organized automatically. Press Ctrl+C to exit.\n",
+        ),
+      );
+    }
 
     chokidar
       .watch(resolvedPath, {
-        ignored: /(^|[/\\])\../, // Ignore dotfiles
+        ignored: /(^|[/\\])\../,
         depth: 0,
         ignoreInitial: true,
       })
@@ -108,8 +160,10 @@ const organize = async (targetDir: string, options: any) => {
         const fileName = path.basename(filePath);
         const ext = path.extname(fileName).toLowerCase();
 
-        // Check if file is ignored by .clutterrc.json
-        if (config.ignore.includes(fileName) || fileName === ".clutterrc.json") {
+        if (
+          config.ignore.includes(fileName) ||
+          fileName === ".clutterrc.json"
+        ) {
           return;
         }
 
@@ -122,10 +176,17 @@ const organize = async (targetDir: string, options: any) => {
             await mkdir(categoryFolderPath, { recursive: true });
             await rename(filePath, destinationPath);
 
-            console.log(
-              chalk.green(`Auto-organized: ${fileName}`) +
-                chalk.gray(` -> ${category}/`),
-            );
+            if (isSpooky) {
+              console.log(
+                spooky.toxic(`Spirit summoned: ${fileName}`) +
+                  spooky.dim(` -> ${category}/`),
+              );
+            } else {
+              console.log(
+                chalk.green(`Auto-organized: ${fileName}`) +
+                  chalk.gray(` -> ${category}/`),
+              );
+            }
           } catch (err) {
             console.error(chalk.red(`Failed to organize ${fileName}:`, err));
           }
@@ -136,7 +197,6 @@ const organize = async (targetDir: string, options: any) => {
 
   const allFiles = await listFiles(resolvedPath);
 
-  // Filter out ignored files and dotfiles/clutterrc
   const files = allFiles.filter(
     (file) =>
       !config.ignore.includes(file.name) &&
@@ -145,7 +205,11 @@ const organize = async (targetDir: string, options: any) => {
   );
 
   if (files.length === 0) {
-    console.log("No files found to organize.");
+    console.log(
+      isSpooky
+        ? spooky.ghost("The crypt is empty. No files found to organize.")
+        : "No files found to organize.",
+    );
     return;
   }
 
@@ -158,7 +222,9 @@ const organize = async (targetDir: string, options: any) => {
       value: file.name,
     }));
     const selectedFiles = await checkbox({
-      message: "Select the files you want to organize:",
+      message: isSpooky
+        ? "Select your ritual sacrifices:"
+        : "Select the files you want to organize:",
       choices,
     });
     const filesToOrganize = files.filter((file) =>
@@ -170,7 +236,12 @@ const organize = async (targetDir: string, options: any) => {
       return;
     }
 
-    await organizeFiles(filesToOrganize, resolvedPath, config.categories);
+    await organizeFiles(
+      filesToOrganize,
+      resolvedPath,
+      config.categories,
+      isSpooky,
+    );
     return;
   }
 
@@ -178,26 +249,37 @@ const organize = async (targetDir: string, options: any) => {
    * Dry run
    */
   if (options.dryRun) {
-    await dryRun(files, resolvedPath, config.categories);
+    await dryRun(files, resolvedPath, config.categories, isSpooky);
     return;
   }
 
-  // Confirm from the user before organizing files
+  // Confirm before organizing
   const { proceed } = await inquirer.prompt([
     {
       type: "confirm",
       name: "proceed",
-      message: `Are you sure you want to organize all the files in "${chalk.cyan.bold(resolvedPath)}"`,
+      message: isSpooky
+        ? spooky.accent(
+            `Do you dare to unleash the ritual on "${resolvedPath}"?`,
+          )
+        : `Are you sure you want to organize all the files in "${chalk.cyan.bold(resolvedPath)}"`,
     },
   ]);
 
   if (!proceed) {
-    console.log("Cancelled organizing files");
+    console.log(
+      isSpooky
+        ? spooky.dim("Ritual aborted. The files remain undisturbed.")
+        : "Cancelled organizing files",
+    );
     return;
   }
 
-  console.log(chalk.cyan.bold("Organizing: ", resolvedPath));
-  await organizeFiles(files, resolvedPath, config.categories);
+  if (!isSpooky) {
+    console.log(chalk.cyan.bold("Organizing: ", resolvedPath));
+  }
+
+  await organizeFiles(files, resolvedPath, config.categories, isSpooky);
 };
 
 export default organize;

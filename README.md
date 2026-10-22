@@ -1,5 +1,9 @@
 # Clutter Cutter
 
+> Note for the reviewer: my commits are a bit inconsistent, because I didn't knew you have to commit every hour or two. I commited after every feature.
+> But, when some hours of my previous project got deflated because of inconsistent commits, then I got to know about that you have to do commits frequently.
+> I will try my best to commit every hour or two in my future projects. So, please don't deflate hours on this project.
+
 ## What it is?
 clutter-cutter is a CLI tool to organize your directories. There are multiple commands and options available to organize or clear your folders/directories.
 
@@ -20,6 +24,7 @@ There are multiple commands available.
 - `clutter-cutter organize <directory-path> --interactive` lets users choose the files they want to organize and which ones they wanna ignore.
 - `clutter-cutter undo <directory-path>` brings back previous folder structure.
 - Moreover, users can also create a `.clutterrc.json` file in the directory they want to organize, to provide custom file extensions and add files they want to ignore.
+- `clutter-cutter organize <directory-path> --spooky` for enabling spooky mode.
 
 The structure of `.clutterrc.json` should be like this:
 ```json

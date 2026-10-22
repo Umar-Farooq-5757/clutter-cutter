@@ -20,6 +20,7 @@ program
   .option("-D, --dry-run", "Preview changes without actually moving files")
   .option("-w, --watch", "Watch directory in real-time for new files")
   .option("-i, --interactive", "Select each file individually to organize")
+  .option("-s, --spooky", "Enable 3AM haunted mode vibes")
   .action((path, options) => {
     organize(path, options);
   });
